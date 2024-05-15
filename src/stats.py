@@ -54,7 +54,10 @@ class SAMPLE:
     for i in range(nb,nd): out[i] = "-"
     #for i in range(nd,ne): out[i] = "-"
     out[width//2] = "|"
-    out[nc] = "*"
+    if nc < len(out):
+      out[nc] = "*"
+    else:
+      out[-1] = "*"
     return ', '.join(["%2d" % num.rank, word % num.txt, fmt%c, fmt%(d-b),  
                       ''.join(out), fmt%self.lo,      fmt%self.hi ]) #, ', '.join([(fmt % x) for x in [a,b,c,d,e]])])
 
