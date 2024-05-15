@@ -18,7 +18,7 @@ OPTIONS:
      -d --discretizationRange    number of bins when discretizing numerical data for SNEAK = 8
      -e --effectSize  non-parametric small delta = 0.2385
      -E --Experiments number of Bootstraps       = 256
-     -f --file        csv data file name         = '../data/SS-J.csv'  
+     -f --file        csv data file name         = '../data/SS-B.csv'  
      -F --Far         far search outlier control = .95 
      -h --help        print help                 = false
      -H --Half        #items for far search      = 256
@@ -351,8 +351,9 @@ class DATA(struct):
     root = Node(left, leftR, right, rightR, lefts, rights, items)
     return root
   
-  def SNEAK(self):
+  def SNEAK(self, variant = 0):
     #create a tree
+    self._sneak_var = variant
     root = self.tree()
     dfd = self.calculateDfd(root)
     best, bestS = self.findGood(root, dfd)
@@ -360,11 +361,18 @@ class DATA(struct):
       self.decide(best, root)
       best, bestS = self.findGood(root, dfd)
     survivors = self.gatherSurvivors(root)
-    #print("Sneak left ", len(survivors), "candidate survivors")
-    # sort survivors using the better function
-    survivors.sort()
-    #print(survivors[0])
-    return self.rows[survivors[0].pos]
+    if self._sneak_var >> 0 & 1:
+      mapped_survivors = [None] * len(survivors)
+      for i in range(len(survivors)):
+        mapped_survivors[i] = self.rows[survivors[i].pos]      
+      mapped_survivors = sorted(mapped_survivors, key = self.d2h)
+      return mapped_survivors[0]
+    else:
+      #print("Sneak left ", len(survivors), "candidate survivors")
+      # sort survivors using the better function
+      survivors.sort()
+      #print(survivors[0])
+      return self.rows[survivors[0].pos]
     
   def findGood(self, root, dfd):
     #for each node calculate the good score
@@ -406,7 +414,11 @@ class DATA(struct):
     return goodNode, goodScore
 
   def goodScore(self, node, goodV):
-    asked = 1 - node.asked
+    if self._sneak_var >> 1 & 1:
+      asked = node.asked
+    else:
+      asked = 1 - node.asked
+
     good = 0
     for i, v in enumerate(goodV):
       good += xor(bool(node.leftR.item[i]), bool(node.rightR.item[i]))* v
@@ -502,7 +514,10 @@ class DATA(struct):
       multi = 1 if name[-1] == "+" else -1
       s1 -= math.e**(multi * (a-b)/n)
       s2 -= math.e**(multi * (b-a)/n)
-    return s1 / n < s2 / n
+    if self._sneak_var >> 2 & 1:
+      return s1 / n > s2 / n
+    else:
+      return s1 / n < s2 / n
   
   def prune(self, node, root):
     pruned = node.all
