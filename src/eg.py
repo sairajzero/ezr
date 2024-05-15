@@ -168,6 +168,9 @@ class Eg:
       
       say(f"#SNEAK");all +=  [SAMPLE([d.d2h(d.SNEAK()) for _ in range(repeats)],txt=f"SNEAK,{(int(len(d.rows)**.5))}")] 
 
+      for v in range(1, pow(2, 3)):
+        say(f"#SNEAK_v{v}");all +=  [SAMPLE([d.d2h(d.SNEAK(variant=v)) for _ in range(repeats)],txt=f"SNEAK_v{v},{(int(len(d.rows)**.5))}")] 
+
       def _double(all):
         evals1,evals2 = 0,0
         lst   = []
@@ -203,6 +206,12 @@ class Eg:
   def test():
     d = DATA(csv(the.file),order=False)
     print(d.SNEAK())
+
+  def test_z():
+    files = ['../data/SS-A.csv', '../data/SS-B.csv', '../data/SS-D.csv', '../data/SS-E.csv', '../data/SS-F.csv']
+    for file in files:
+      the.file = file
+      Eg.smoy()
 #----------------------------------------------------------------------------------------
 if __name__ == "__main__":
   the.cli() 
