@@ -127,9 +127,11 @@ class DATA(struct):
     bins = []
     names = []
     yNames = []
+    xNames = []
     for i, col in enumerate(self.cols):
       if col not in self.ys.values():
         b = self.binCol(col, self.names[i])
+        xNames.append(self.names[i])
         bins.append(b)
         names += b[2]
       if col in self.ys.values():
@@ -141,14 +143,16 @@ class DATA(struct):
     binRows = [[0] * vecSize for _ in range(len(self.rows))]
     yMatrix = []
     binVecs = []
+    xMatrix = []
     for i, row in enumerate(self.rows):
-      ys = []
+      xs, ys = [], []
       binVec = [0]  * vecSize
       curbin = 0
       offset = 0
       for j, col in enumerate(row):
         if j not in self.ys:
           val = row[j]
+          xs.append(val)
           if val != "?":
             binVal = self.binColVal(self.cols[j], val, bins[curbin])
             binVec[offset + binVal] = 1
@@ -158,10 +162,13 @@ class DATA(struct):
           ys.append(row[j])
         binVecs.append(binVec)
         yMatrix.append(ys)
+        xMatrix.append(xs)
     yMatrix = np.array(yMatrix)
     yMatrix = (yMatrix - yMatrix.min(0)) / yMatrix.ptp(0)
+    xMatrix = np.array(xMatrix)
+    xMatrix = (xMatrix - xMatrix.min(0)) / xMatrix.ptp(0)
     for i, row in enumerate(self.rows):
-      binRows[i] = (i, binVecs[i], names, yMatrix[i], yNames)
+      binRows[i] = (i, binVecs[i], names, yMatrix[i], yNames, xMatrix[i], xNames)
     return binRows
   
   def binColVal(self, col, val, bn):
@@ -338,11 +345,62 @@ class DATA(struct):
   def rtree(self, items=None, stop=None):
     stop = stop or 2*len(items)**the.Min
     if len(items) > stop:
-      leftN, leftR, rightN, rightR = self.halfBin(items)
+      leftN, leftR, rightN, rightR = self.sneak_fastmap(items)
       leftN.left, leftN.lefts, leftN.leftR, leftN.right, leftN.rights, leftN.rightR = self.rtree(items = leftN.all, stop = stop)
       rightN.left, rightN.lefts, rightN.leftR, rightN.right, rightN.rights, rightN.rightR = self.rtree(items = rightN.all,stop =  stop)
       return leftN, leftN.all, leftR,  rightN, rightN.all, rightR
     return None, None, None, None, None, None
+  
+  def sneak_fastmap(self, items):
+    rand = random.choice(items)
+    max_d = float("-inf")
+    left = None
+    for item in items:
+      d = self.sneak_dist(item, rand)
+      if d > max_d:
+        max_d = d
+        left = item
+    
+    max_d = float("-inf")
+    right = None
+    for item in items:
+      d = self.sneak_dist(item, left)
+      if d > max_d:
+        max_d = d
+        right = item
+
+    c = self.sneak_dist(left, right)
+
+    for item in items:
+      a = self.sneak_dist(item, left)
+      b = self.sneak_dist(item, right)
+      item.d = (a**2 + c**2 - b**2) / (2*c)
+    
+    items.sort(key = lambda x: x.d)
+    
+    n = len(items)
+
+    lefts,rights = items[:int(n/2)], items[int(n/2):]
+
+    return Node(None, None, None, None, None, None, lefts), left, Node(None, None, None, None, None, None, rights), right
+
+
+
+  def sneak_dist(self, a, b):
+    def num(p, q):
+      return abs(p - q)
+    def sym(p, q):
+      return p != q
+    
+    names = a.xNames
+    d, n, p = 0, 0, the.p
+
+    for i, name in enumerate(names):
+      n += 1
+      inc = (num if name[0].isupper() else sym)(a.xValues[i], b.xValues[i])      
+      d += inc ** p
+
+    return (d/n) ** (1/p)
   
   def tree(self):
     binRows = self.binXRows()
