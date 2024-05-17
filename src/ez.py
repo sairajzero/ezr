@@ -412,6 +412,7 @@ class DATA(struct):
   def SNEAK(self, variant = 0):
     #create a tree
     self._sneak_var = variant
+    self._eval_count = 0
     root = self.tree()
     dfd = self.calculateDfd(root)
     best, bestS = self.findGood(root, dfd)
@@ -420,17 +421,18 @@ class DATA(struct):
       best, bestS = self.findGood(root, dfd)
     survivors = self.gatherSurvivors(root)
     if self._sneak_var >> 0 & 1:
+      self._eval_count += len(survivors)
       mapped_survivors = [None] * len(survivors)
       for i in range(len(survivors)):
         mapped_survivors[i] = self.rows[survivors[i].pos]      
       mapped_survivors = sorted(mapped_survivors, key = self.d2h)
-      return mapped_survivors[0]
+      return mapped_survivors[0], self._eval_count
     else:
       #print("Sneak left ", len(survivors), "candidate survivors")
       # sort survivors using the better function
-      survivors.sort()
+      #survivors.sort()
       #print(survivors[0])
-      return self.rows[survivors[0].pos]
+      return self.rows[survivors[0].pos], self._eval_count
     
   def findGood(self, root, dfd):
     #for each node calculate the good score
@@ -472,11 +474,7 @@ class DATA(struct):
     return goodNode, goodScore
 
   def goodScore(self, node, goodV):
-    if self._sneak_var >> 1 & 1:
-      asked = node.asked
-    else:
-      asked = 1 - node.asked
-
+    asked = 1 - node.asked
     good = 0
     for i, v in enumerate(goodV):
       good += xor(bool(node.leftR.item[i]), bool(node.rightR.item[i]))* v
@@ -550,6 +548,7 @@ class DATA(struct):
     return entropy
     
   def decide(self, node, root):
+    self._eval_count += 2
     node.asked = 1
     # better returns 1 if left is better and 0 if right is better
     if self.better(node):
@@ -572,10 +571,7 @@ class DATA(struct):
       multi = 1 if name[-1] == "+" else -1
       s1 -= math.e**(multi * (a-b)/n)
       s2 -= math.e**(multi * (b-a)/n)
-    if self._sneak_var >> 2 & 1:
-      return s1 / n > s2 / n
-    else:
-      return s1 / n < s2 / n
+    return s1 / n < s2 / n
   
   def prune(self, node, root):
     pruned = node.all
@@ -612,6 +608,8 @@ class Item(struct):
     self.names = item[2]
     self.ev = item[3]
     self.evNames = item[4]
+    self.xValues = item[5]
+    self.xNames = item[6]
     self.r = -1
     self.d = -1
     self.theta = -1

@@ -166,10 +166,22 @@ class Eg:
         all += [SAMPLE(lst, txt=f"rrp,{evals1}")]
         return 
       
-      say(f"#SNEAK");all +=  [SAMPLE([d.d2h(d.SNEAK()) for _ in range(repeats)],txt=f"SNEAK,{(int(len(d.rows)**.5))}")] 
+      def _sneak(all, variant = 0):
+        lst   = []
+        for _ in range(repeats):
+          best, sneak_evals = d.SNEAK(variant) 
+          lst +=  [d.d2h(best)]
+        all += [SAMPLE(lst, txt=f"SNEAK_v{v},{(sneak_evals)}")]
+        return 
+      
+      for v in range(0, pow(2, 1)):
+        say(f"#SNEAK_v{v}");_sneak(all, v)
+      
 
-      for v in range(1, pow(2, 3)):
-        say(f"#SNEAK_v{v}");all +=  [SAMPLE([d.d2h(d.SNEAK(variant=v)) for _ in range(repeats)],txt=f"SNEAK_v{v},{(int(len(d.rows)**.5))}")] 
+      #say(f"#SNEAK");all +=  [SAMPLE([d.d2h(best) for _ in range(repeats)],txt=f"SNEAK,{(sneak_evals)}")] 
+
+      #for v in range(1, pow(2, 3)):
+      #  say(f"#SNEAK_v{v}");all +=  [SAMPLE([d.d2h(d.SNEAK(variant=v)) for _ in range(repeats)],txt=f"SNEAK_v{v},{(int(len(d.rows)**.5))}")] 
 
       def _double(all):
         evals1,evals2 = 0,0
