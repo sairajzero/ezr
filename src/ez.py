@@ -15,7 +15,7 @@ OPTIONS:
      -B --Budget      subsequent evals           = 5   
      -c --cohen       small effect size          = .35  
      -C --confidence  statistical confidence     = .05
-     -d --discretizationRange    number of bins when discretizing numerical data for SNEAK = 8
+     -d --diffTh      SNEAK: num diff threshold  = .8
      -e --effectSize  non-parametric small delta = 0.2385
      -E --Experiments number of Bootstraps       = 256
      -f --file        csv data file name         = '../data/SS-B.csv'  
@@ -27,7 +27,7 @@ OPTIONS:
      -M --Min         min size is N**Min         = .5
      -p --p           distance coefficient       = 2
      -r --ranges      max number of bins         = 16
-     -R --Repeats     max number of bins         = 20
+     -R --Repeats     number of repeats          = 20
      -s --seed        random number seed         = 31210 
      -S --score       support exponent for range = 2  
      -t --todo        start up action            = 'help'   
@@ -123,84 +123,34 @@ class DATA(struct):
   def div(self):
     return [col.entropy() if isa(col,SYM) else col.sd for col in self.cols]
   
-  def binXRows(self):
-    bins = []
-    names = []
+  def convertToItems(self):
     yNames = []
     xNames = []
     for i, col in enumerate(self.cols):
       if col not in self.ys.values():
-        b = self.binCol(col, self.names[i])
         xNames.append(self.names[i])
-        bins.append(b)
-        names += b[2]
       if col in self.ys.values():
         yNames.append(self.names[i])
-    vecSize = 0
-    for b in bins:
-      vecSize += b[0]
-    binVec = [0] * vecSize
-    binRows = [[0] * vecSize for _ in range(len(self.rows))]
-    yMatrix = []
-    binVecs = []
-    xMatrix = []
+    values, yMatrix, xMatrix = [], [], []
     for i, row in enumerate(self.rows):
       xs, ys = [], []
-      binVec = [0]  * vecSize
-      curbin = 0
-      offset = 0
       for j, col in enumerate(row):
         if j not in self.ys:
-          val = row[j]
-          xs.append(val)
-          if val != "?":
-            binVal = self.binColVal(self.cols[j], val, bins[curbin])
-            binVec[offset + binVal] = 1
-            offset += bins[curbin][0]
-            curbin += 1
+          xs.append(row[j])
         if j in self.ys:
           ys.append(row[j])
-        binVecs.append(binVec)
         yMatrix.append(ys)
         xMatrix.append(xs)
+    # normalize values
     yMatrix = np.array(yMatrix)
     yMatrix = (yMatrix - yMatrix.min(0)) / yMatrix.ptp(0)
+    values = xMatrix
     xMatrix = np.array(xMatrix)
     xMatrix = (xMatrix - xMatrix.min(0)) / xMatrix.ptp(0)
+    normRows = [None] * len(self.rows)
     for i, row in enumerate(self.rows):
-      binRows[i] = (i, binVecs[i], names, yMatrix[i], yNames, xMatrix[i], xNames)
-    return binRows
-  
-  def binColVal(self, col, val, bn):
-    if isa(col, SYM):
-      return bn[1].index(val)
-    else:
-      for i, (lo, hi) in enumerate(bn[1]):
-        if i == 0 and val < hi:
-          return i
-        elif i == len(bn[1]) - 1 and val >= lo:
-          return i
-        if lo <= val < hi:
-          return i
-
-  def binCol(self, col, name):
-    if isa(col, SYM):
-      nBins = len(col)
-      ranges = [x for x in col]
-      #print(nBins, ranges, "Sym")
-      names = [name+"_"+str(i) for i in range(nBins)]
-      return nBins, ranges, names
-    else:
-      nBins = the.discretizationRange
-      ran = col.hi - col.lo
-      binSize = ran / nBins
-      ranges = [(col.lo + i * binSize, col.lo + (i + 1) * binSize) for i in range(nBins)]
-      names = [name.lower()+"_"+str(i) for i in range(nBins)]
-      #print(nBins, ranges, "Num")
-      return nBins, ranges, names
-
-
-
+      normRows[i] = (i, values[i], xNames, yMatrix[i], yNames, xMatrix[i], xNames)
+    return normRows
   
 #                                  _     
 #          _  |   _.   _   _  o  _|_     
@@ -289,44 +239,6 @@ class DATA(struct):
       (lefts if n < len(rows)/2 else rights).append(row)
     return lefts, rights, left
   
-  def halfBin(self, items):
-    total_group=10
-    left = None
-    lefts = []
-    right = None
-    rights = []
-    random.seed()
-    rand = random.choice(items)
-    max_r = -float('inf')
-    min_r = float('inf')
-    for item in items:
-        item.r = sum(item.item)
-        item.d = sum([a_i - b_i for a_i, b_i in zip(item.item, rand.item)])
-        if item.r > max_r:
-            max_r = item.r
-        if item.r < min_r:
-            min_r = item.r
-    for item in items:
-        item.r = (item.r - min_r) / (max_r - min_r + 10 ** (-32))
-    R = {r.r for r in items}
-    for k in R:
-        group = [item for item in items if item.r == k]
-        group.sort(key=lambda z: z.d, reverse=True)
-        for i, value in enumerate(group):
-            value.theta = (2 * pi * (i + 1)) / len(group)
-    thk = max_r / total_group
-    for g_value in range(total_group):
-        group = [i for i in items if (g_value * thk) <= i.r <= ((g_value + 1) * thk)]
-        group.sort(key=lambda x: x.theta)
-        if len(group) > 0:
-            left = group[0]
-            right = group[len(group) - 1]
-            for i in group:
-                if i.theta <= pi:
-                    lefts.append(i)
-                else:
-                    rights.append(i)
-    return Node(None, None, None, None, None, None, lefts), left, Node(None, None, None, None, None, None, rights), right
 #                                              _  
 #          _   ._   _|_  o  ._ _   o  _    _    ) 
 #         (_)  |_)   |_  |  | | |  |  /_  (/_  /_ 
@@ -403,7 +315,7 @@ class DATA(struct):
     return (d/n) ** (1/p)
   
   def tree(self):
-    binRows = self.binXRows()
+    binRows = self.convertToItems()
     items = [Item(row) for row in binRows]
     left, lefts, leftR, right, rights, rightR, = self.rtree(items = items)
     root = Node(left, leftR, right, rightR, lefts, rights, items)
@@ -474,17 +386,20 @@ class DATA(struct):
     return goodNode, goodScore
 
   def goodScore(self, node, goodV):
+    def num(p, q):
+      return abs(p - q)
+    def sym(p, q):
+      return p != q
+    
     asked = 1 - node.asked
-    good = 0
+    good, denom = 0, 0
     for i, v in enumerate(goodV):
-      good += xor(bool(node.leftR.item[i]), bool(node.rightR.item[i]))* v
+      diff = (num if node.leftR.xNames[i][0].isupper() else sym)(node.leftR.xValues[i], node.rightR.xValues[i])
+      good += diff * v
+      denom += diff
     good = good * asked 
-    denom = 0
-    for i in range(len(goodV)):
-      denom += xor(bool(node.leftR.item[i]), bool(node.rightR.item[i]))
-    if denom == 0:
-      return 0
-    return good/denom
+
+    return 0 if denom == 0 else good/denom
 
   
   def calculateGoodV(self, dfd, entropy):
@@ -495,7 +410,7 @@ class DATA(struct):
 
   def calculateDfd(self, root):
     #walk the tree and calculate the depth of the first occurence of a difference in the left and right variables for each column in the data
-    dfd = [0]*len(root.all[0].item)
+    dfd = [0]*len(root.all[0].xValues)
     if root.left != None:
       dfdl = self.recursiveDfd(root.left, dfd, 1)
     if root.right != None:
@@ -515,9 +430,16 @@ class DATA(struct):
     return dfd
   
   def recursiveDfd(self, node, dfd, depth):
+
+    def num(p, q):
+      return abs(p - q) > the.diffTh
+    def sym(p, q):
+      return p != q
+
     if node.right != None and node.left != None:
-      for i in range(len(node.all[0].item)):
-        if node.leftR.item[i] != node.rightR.item[i] and (dfd[i] == 0 or dfd[i] > depth):
+      for i in range(len(node.all[0].xValues)):
+        diff = (num if node.leftR.xNames[i][0].isupper() else sym)(node.leftR.xValues[i], node.rightR.xValues[i])
+        if diff and (dfd[i] == 0 or dfd[i] > depth):
           dfd[i] = depth
       if node.left != None:
         dfdl = self.recursiveDfd(node.left, dfd, depth + 1)
@@ -536,15 +458,12 @@ class DATA(struct):
     return dfd
   
   def getEntropy(self, root):
-    rows = [item.item for item in root.all]
-    names = root.all[0].names
+    rows = [item.xValues for item in root.all]
+    names = root.all[0].xNames
     data = DATA([names])
     for row in rows:
       data.add(row)
-    entropy = [0] * len(data.cols)
-    for i, col in enumerate(data.cols):
-      if i not in data.ys:
-        entropy[i] = data.cols[i].entropy()
+    entropy = data.div()
     return entropy
     
   def decide(self, node, root):
