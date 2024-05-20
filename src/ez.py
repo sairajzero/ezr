@@ -15,10 +15,10 @@ OPTIONS:
      -B --Budget      subsequent evals           = 5   
      -c --cohen       small effect size          = .35  
      -C --confidence  statistical confidence     = .05
-     -d --diffTh      SNEAK: num diff threshold  = .8
+     -d --diffTh      SNEAK: num diff threshold  = .25
      -e --effectSize  non-parametric small delta = 0.2385
      -E --Experiments number of Bootstraps       = 256
-     -f --file        csv data file name         = '../data/SS-B.csv'  
+     -f --file        csv data file name         = '../data/SS-C.csv'  
      -F --Far         far search outlier control = .95 
      -h --help        print help                 = false
      -H --Half        #items for far search      = 256
@@ -147,10 +147,11 @@ class DATA(struct):
     values = xMatrix
     xMatrix = np.array(xMatrix)
     xMatrix = (xMatrix - xMatrix.min(0)) / xMatrix.ptp(0)
+    std_div = np.std(xMatrix, axis=0)
     normRows = [None] * len(self.rows)
     for i, row in enumerate(self.rows):
       normRows[i] = (i, values[i], xNames, yMatrix[i], yNames, xMatrix[i], xNames)
-    return normRows
+    return normRows, std_div
   
 #                                  _     
 #          _  |   _.   _   _  o  _|_     
@@ -315,8 +316,8 @@ class DATA(struct):
     return (d/n) ** (1/p)
   
   def tree(self):
-    binRows = self.convertToItems()
-    items = [Item(row) for row in binRows]
+    normRows, self.std_div = self.convertToItems()
+    items = [Item(row) for row in normRows]
     left, lefts, leftR, right, rights, rightR, = self.rtree(items = items)
     root = Node(left, leftR, right, rightR, lefts, rights, items)
     return root
@@ -431,14 +432,14 @@ class DATA(struct):
   
   def recursiveDfd(self, node, dfd, depth):
 
-    def num(p, q):
-      return abs(p - q) > the.diffTh
-    def sym(p, q):
+    def num(p, q, std):
+      return abs(p - q) > std
+    def sym(p, q, std):
       return p != q
 
     if node.right != None and node.left != None:
       for i in range(len(node.all[0].xValues)):
-        diff = (num if node.leftR.xNames[i][0].isupper() else sym)(node.leftR.xValues[i], node.rightR.xValues[i])
+        diff = (num if node.leftR.xNames[i][0].isupper() else sym)(node.leftR.xValues[i], node.rightR.xValues[i], self.std_div[i])
         if diff and (dfd[i] == 0 or dfd[i] > depth):
           dfd[i] = depth
       if node.left != None:
