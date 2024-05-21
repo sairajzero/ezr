@@ -132,6 +132,9 @@ class Eg:
 
   def smoy():  
       repeats=the.Repeats
+      now = datetime.now().strftime("%B/%m/%Y %H:%M:%S")
+      print(f"date : {now},")
+      print(f"file : {the.file},\nrepeats  : {repeats},\nseed : {the.seed},")
       e=math.exp(1)
       def say(*l): print(*l,end=" ",flush=True);
       r=lambda a: ', '.join([str(x) for x in rnds(a,2)])
@@ -146,9 +149,6 @@ class Eg:
       # n8 = 20
       # n9 = 30
       d2hs = NUM([d.d2h(row) for row in d.clone(d.rows,True).rows])
-      now = datetime.now().strftime("%B/%m/%Y %H:%M:%S")
-      print(f"date : {now},")
-      print(f"file : {the.file},\nrepeats  : {repeats},\nseed : {the.seed},")
       print(f"rows : {len(d.rows)},")
       print(f"cols : {len(d.names)},")
       print(f"best : {rnds(d2hs.lo)},\ntiny : {rnds(d2hs.sd*.35)}")
@@ -220,10 +220,16 @@ class Eg:
     print(d.SNEAK())
 
   def test_z():
-    files = ['../data/SS-A.csv', '../data/SS-B.csv', '../data/SS-D.csv', '../data/SS-E.csv', '../data/SS-F.csv']
+    old_files = ['../data/anneal.csv', '../data/auto93.csv', '../data/china.csv', '../data/coc1000.csv', '../data/coc10000.csv', '../data/diabetes.csv', '../data/healthClosedIssues12mths0001.csv', '../data/healthClosedIssues12mths0011.csv', '../data/healthClosedPRs12mths0001.csv', '../data/healthClosedPRs12mths0011.csv', '../data/healthCommits12mths0001.csv', '../data/healthCommits12mths0011.csv', '../data/nasa93dem.csv', '../data/nasa93demNums.csv', '../data/pom.csv', '../data/pom3a.csv', '../data/pom3b.csv', '../data/pom3c.csv', '../data/pom3d.csv', '../data/soybean.csv', '../data/SS-A.csv', '../data/SS-B.csv', '../data/SS-C.csv', '../data/SS-D.csv', '../data/SS-E.csv', '../data/SS-F.csv', '../data/SS-G.csv', '../data/SS-H.csv', '../data/SS-I.csv', '../data/SS-J.csv', '../data/SS-K.csv', '../data/SS-L.csv', '../data/weather.csv', '../data/Wine_quality.csv', '../data/xomo_flight.csv', '../data/xomo_ground.csv', '../data/xomo_osp.csv', '../data/xomo_osp2.csv', '../data/zero.csv']
+    new_files = ['../data/new/Apache_AllMeasurements.csv', '../data/new/BDBC_AllMeasurements.csv', '../data/new/Dune.csv', '../data/new/HSMGP_num.csv', '../data/new/lrzip.csv', '../data/new/rs-6d-c3_obj1.csv', '../data/new/rs-6d-c3_obj2.csv', '../data/new/sol-6d-c2-obj1.csv', '../data/new/sol-6d-c2-obj2.csv', '../data/new/SQL_AllMeasurements.csv', '../data/new/SS-A.csv', '../data/new/SS-B.csv', '../data/new/SS-C.csv', '../data/new/SS-D.csv', '../data/new/SS-E.csv', '../data/new/SS-F.csv', '../data/new/SS-G.csv', '../data/new/SS-H.csv', '../data/new/SS-I.csv', '../data/new/SS-J.csv', '../data/new/SS-K.csv', '../data/new/wc+rs-3d-c4-obj1.csv', '../data/new/wc+rs-3d-c4-obj2.csv', '../data/new/wc+sol-3d-c4-obj1.csv', '../data/new/wc+sol-3d-c4-obj2.csv', '../data/new/wc+wc-3d-c4-obj1.csv', '../data/new/wc+wc-3d-c4-obj2.csv', '../data/new/wc-3d-c4_obj2.csv', '../data/new/wc-6d-c1-obj1.csv', '../data/new/wc-6d-c1-obj2.csv', '../data/new/WGet.csv', '../data/new/X264_AllMeasurements.csv']
+    files = old_files + new_files
     for file in files:
-      the.file = file
-      Eg.smoy()
+      try:
+        the.file = file
+        Eg.smoy()
+      except Exception as e:
+        print("ERROR:", e)
+
 #----------------------------------------------------------------------------------------
 if __name__ == "__main__":
   the.cli() 
