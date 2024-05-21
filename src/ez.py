@@ -141,13 +141,27 @@ class DATA(struct):
           ys.append(row[j])
         yMatrix.append(ys)
         xMatrix.append(xs)
+        values.append(xs)
     # normalize values
+    std_div = [None] * len(xMatrix[0])
+    for i in range(len(xMatrix[0])):
+      if xNames[i][0].isupper(): # check if column is num
+        col_xs = np.array([xMatrix[j][i] for j in range(len(xMatrix))]) # get all 
+        col_xs = (col_xs - col_xs.min()) / col_xs.ptp(0)
+        std_div[i] = np.std(col_xs)
+        for j in range(len(xMatrix)):
+          xMatrix[j][i] = col_xs[j]
+        
     yMatrix = np.array(yMatrix)
     yMatrix = (yMatrix - yMatrix.min(0)) / yMatrix.ptp(0)
-    values = xMatrix
+    """
     xMatrix = np.array(xMatrix)
+    for i in range(len(xMatrix[0])):
+      xtmp = xMatrix[:, i]
+      print("val",i, set(xtmp))
     xMatrix = (xMatrix - xMatrix.min(0)) / xMatrix.ptp(0)
     std_div = np.std(xMatrix, axis=0)
+    """
     normRows = [None] * len(self.rows)
     for i, row in enumerate(self.rows):
       normRows[i] = (i, values[i], xNames, yMatrix[i], yNames, xMatrix[i], xNames)
@@ -287,7 +301,10 @@ class DATA(struct):
     for item in items:
       a = self.sneak_dist(item, left)
       b = self.sneak_dist(item, right)
-      item.d = (a**2 + c**2 - b**2) / (2*c)
+      if c == 0:
+        item.d = 0
+      else:
+        item.d = (a**2 + c**2 - b**2) / (2*c)
     
     items.sort(key = lambda x: x.d)
     
@@ -535,7 +552,7 @@ class Item(struct):
     self.theta = -1
     self.score = 0
     self.pos = item[0]
-    self.features = sum(self.item)
+    #self.features = sum(self.item)
 
 
   def better(self, other):

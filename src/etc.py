@@ -54,7 +54,8 @@ def o(d, s = ""):
   return s+"{"+(", ".join([f":{k} {rnds(v)}" for k,v in d.items() if k[0]!="_"]))+"}" 
 
 def rnds(x,n=2): 
-  if isa(x,(int,float)):  return x if int(x)==x else round(x,n)
+  if isa(x,(int)):  return x
+  if isa(x,(float)):  return round(x,n)
   if isa(x,(list,tuple)): return [rnds(y,n) for y in x]
   return x
 
